@@ -1,0 +1,119 @@
+<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
+
+# maintent mes toi dasn ma situation et fais moi prompte qui pourra etre donner a un autre chat gpt 5 avec des image dautre donner et un autre pdf pour quille me donner se code comme tu vien de moenvoyer et qui si il lui manqhue des infi me le dise sachant quil dois garder exactent la meme syntqxe que toi pour les fichier finap
+
+Voici un prompt prêt à copier-coller pour un autre assistant afin d’obtenir automatiquement le même type de code et les mêmes fichiers finaux, à partir d’un autre PDF et d’autres images.
+
+PROMPT À DONNER TEL QUEL
+—
+Contexte:
+
+- Objectif: extraire des séries de vitesses radiales depuis un PDF (tableaux “TABLE 2” ou équivalent) et/ou des images recadrées des tableaux, puis générer 1 fichier CSV par étoile suivant EXACTEMENT la même syntaxe que ci‑dessous.
+- MISE À JOUR: le champ epoch doit être converti en JD absolu en ajoutant 2 400 000 au HJD/“xJD” imprimé (ex.: 2179.593 → 2 442 179.593), avec trois décimales minimum pour la sortie.
+- MISE À JOUR: offset_legacy doit être la chaîne “JD” (uniformisée), et non plus “xJD”.
+- MISE À JOUR: on doit être fixé à “1” pour toutes les lignes.
+- MISE À JOUR: velocity_source doit contenir le bibcode “1987ApJS...64..487L” (ou le bibcode fourni) pour toutes les lignes; ne pas y mettre l’instrument.
+- MISE À JOUR: component doit être en minuscules, et “a” par défaut si non spécifié (SB1).
+- weight=1 par défaut.
+- L’ordre des lignes dans chaque CSV doit suivre l’ordre d’affichage dans les images/tableaux fournis, pas un tri numérique.
+- Si une information est absente dans les images et introuvable dans le PDF, laisser le champ vide et me signaler clairement la donnée manquante.
+- Je fournis:
+
+1) Un PDF source (nouvelle référence).
+2) Un lot d’images recadrées des blocs de la table de vitesses.
+3) Un mapping catalogue→sn sous la forme: "HD"|"identifier"|"sn".
+4) Un chemin de sortie Windows OUTPUT_DIR où enregistrer les CSV.
+
+Exigences de sortie:
+
+1) Écrire un script Python autonome qui, sans dépendances externes, crée tous les fichiers CSV dans OUTPUT_DIR, avec les noms “velocity_sn.csv”.
+2) Réutiliser STRICTEMENT les mêmes en‑têtes et la même syntaxe de colonnes que ci‑dessous (MISE À JOUR: sn en première colonne):
+sn,comment_legacy,component,epoch,offset_legacy,on,radial_velocity,radial_velocity_error,velocity_source,weight
+3) Respecter les règles:
+
+- epoch: lire le HJD/“xJD” tel qu’imprimé, puis écrire epoch = HJD + 2 400 000 (JD absolu) avec au moins trois décimales.
+- offset_legacy: toujours “JD”.
+- on: toujours “1”.
+- velocity_source: bibcode constant (par défaut “1987ApJS...64..487L”, ou valeur fournie).
+- weight: 1 si non fourni dans le PDF.
+- component: libellés en minuscules (“a”, “b”, “ab”); défaut “a” si non spécifié (SB1).
+- L’ordre des lignes doit suivre l’ordre visuel des images/tableaux.
+
+4) Si des champs sont introuvables après recherche dans le PDF, créer quand même les fichiers avec champs vides aux positions exactes, et lister à la fin toutes les données manquantes par étoile.
+
+Modèle de code attendu:
+
+- Le script doit avoir une variable OUTPUT_DIR = r"CHEMIN_WINDOWS" et créer le dossier s’il n’existe pas.
+- Pour chaque étoile, créer files["velocity_sn.csv"] = contenu CSV sous forme de chaîne multilignes, puis écrire tous les fichiers.
+- Exemple exact de squelette à reproduire (adapter uniquement les fichiers et le mapping issu de mon lot):
+
+[NE PAS MODIFIER LA FORME CI‑DESSOUS, SEULEMENT REMPLIR LE DICTIONNAIRE files, ET RESPECTER L’ORDRE DE COLONNES MISE À JOUR]
+
+
+
+```python
+#make_velocities_to_dir.py
+import os
+from textwrap import dedent
+
+OUTPUT_DIR = r"C:\Chemin\De\Sortie\A\REMPLACER"
+BIBCODE = "1987ApJS...64..487L"
+
+files = {
+"velocity_XXXX.csv": dedent("""
+sn,comment_legacy,component,epoch,offset_legacy,on,radial_velocity,radial_velocity_error,velocity_source,weight
+XXXX,,a,2442179.593,JD,1,11.8,3.8,1987ApJS...64..487L,1
+"""),
+
+... répéter pour chaque étoile ...
+}
+
+def main():
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+for name, content in files.items():
+with open(os.path.join(OUTPUT_DIR, name), "w", encoding="utf-8") as f:
+f.write(content)
+print(f"Écrit {len(files)} fichiers dans: {OUTPUT_DIR}")
+
+if name == "main":
+main()
+```
+
+Données d’entrée que je fournis maintenant:
+
+- PDF: [joindre le nouveau PDF]
+- Images: [joindre toutes les captures recadrées des tableaux de vitesses]
+- Mapping catalogue→sn: tableau "HD"|"identifier"|"sn" (ou autre catalogue si nécessaire).
+- OUTPUT_DIR: r"C:\Users\Kuba\Documents\kuba\ecole\unif\m1\stage 1\velocitis\NOUVEL_ARTICLE"
+
+Tâches à exécuter:
+
+- Parcourir les images; pour chaque bloc “étoile”, lire visuellement dans l’ordre:
+HJD_imprimé | radial_velocity | n (nombre de raies, ne pas inclure car pas de colonne dédiée) | probable error (mettre dans radial_velocity_error) | labels d’en‑tête (pour component a/b/ab en minuscules et pour le nom HD).
+- Si certaines lignes sont illisibles dans les images, ouvrir le PDF pour récupérer les valeurs manquantes.
+- Déterminer le component depuis les en‑têtes; si absent, utiliser “a” (SB1).
+- Associer l’étoile au sn via le mapping fourni; si une entrée manque, lister “sn manquant pour HD XXXXX — fichier non généré” et me le signaler.
+- Construire le dictionnaire files avec une entrée par “velocity_sn.csv” contenant toutes les lignes CSV pour cette étoile.
+- Me rendre le script Python complet en une seule réponse, suivi d’un rapport des informations manquantes (s’il y en a), sous la forme:
+    - Manques: [liste étoile → champs manquants].
+Contraintes finales:
+
+- Ne pas changer l’ordre ni les noms des colonnes CSV.
+- Ne pas trier les lignes; conserver l’ordre d’apparition dans les images.
+- offset_legacy doit être exactement “xJD”.
+- weight = 1 si absent.
+- Si instruments non trouvés, velocity_source vide.
+- Indiquer explicitement tout élément non trouvé.
+- Ne pas changer l’ordre ni les noms des colonnes CSV (sn en 1er).
+- Ne pas trier les lignes; conserver l’ordre d’apparition dans les images.
+- offset_legacy doit être exactement “JD”.
+- on = 1 partout.
+- velocity_source = bibcode constant (“1987ApJS...64..487L” sauf instruction contraire).
+- Indiquer explicitement tout élément non trouvé.
+Fin du prompt.
+—
+
+Ce prompt guidera un autre assistant pour produire un script identique dans la forme et la syntaxe, adapté à un PDF/images différents, et pour signaler clairement toute information manquante avant ingestion.[^1]
+
+<div align="center">⁂</div>
+

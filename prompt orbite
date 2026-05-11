@@ -1,0 +1,122 @@
+<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
+
+# super merci fasi de meme pour les parametter orbiteau stp
+
+Voici le prompt complet “orbites” aligné avec nos règles et prêt à copier‑coller pour un autre assistant; il produit des fichiers orbit_sn.csv avec sn en première colonne, epoch_reference=JD, periastron_time = HJD + 2 400 000, periastron_time_flag=0, on=1, note standardisée, et sans a_sin_i, f(m) ni (O−C). Les champs et le code modèle sont fournis tels qu’à utiliser.
+
+PROMPT À DONNER TEL QUEL
+—
+Contexte:
+
+- Objectif: extraire les paramètres orbitaux depuis un PDF (Table 4/“Orbital elements” ou équivalent) et/ou des images recadrées, puis générer 1 fichier CSV par étoile nommé orbit_<sn>.csv, en respectant EXACTEMENT le schéma et les règles ci‑dessous.
+- MISE À JOUR: sn doit être la première colonne.
+- MISE À JOUR: epoch_reference doit être “JD” dans tous les cas.
+- MISE À JOUR: periastron_time = HJD + 2 400 000 (conversion systématique), periastron_time_error = l’incertitude sur HJD recopiée telle quelle (sans conversion).
+- MISE À JOUR: periastron_time_flag = 0 par défaut.
+- MISE À JOUR: on = 1 par défaut.
+- MISE À JOUR: note: inclure une phrase formelle si et seulement si le PDF indique explicitement que des données externes aux vitesses du papier ont été utilisées pour contraindre l’orbite; sinon laisser note vide. Phrase standard recommandée:
+“Paramètres orbitaux établis à partir des observations de {BIBCODE} et de données complémentaires issues d’autres références.”
+- Exclure totalement a_sin_i, f(m) et (O−C) des sorties.
+
+Schéma CSV cible (ordre et noms de colonnes figés):
+sn,accessibility_legacy,apparent_systemic_velocity_1,apparent_systemic_velocity_2,apparent_systemic_velocity_error_1,apparent_systemic_velocity_error_2,bibcode,contributor,eccentricity,eccentricity_error,epoch_reference,grade,grade_legacy,K1,K1_error,K2,K2_error,note,num_RV1,num_RV2,on,periastron_argument,periastron_argument_error,periastron_time,periastron_time_error,periastron_time_flag,period,period_error,rms_RV1,rms_RV2,systemic_velocity,systemic_velocity_error
+
+Règles d’interprétation:
+
+- period/period_error: recopiés tels qu’imprimés (unités en jours).
+- HJD (T0) lu tel qu’imprimé; sortie periastron_time = HJD + 2 400 000; periastron_time_error = σ(HJD) tel quel.
+- eccentricity/eccentricity_error: recopiés.
+- periastron_argument/±error: recopiés (en degrés).
+- K1/±error, K2/±error: recopiés; K2 vide si SB1.
+- systemic_velocity/±error: pour SB1, renseigner V et son incertitude; pour SB2, laisser systemic_velocity vide sauf si une vitesse systémique commune explicite est donnée.
+- apparent_systemic_velocity_1/2 et leurs erreurs: n’utiliser que si la table fournit des vitesses systémiques distinctes par composant (SB2); sinon laisser vides.
+- num_RV1/num_RV2: fournir les nombres de mesures par composant si disponibles (sinon laisser vides).
+- contributor: utiliser la chaîne fournie (par défaut “KR”).
+- bibcode: utiliser le bibcode fourni (par défaut “1987ApJS...64..487L”).
+- grade/grade_legacy/rms_RV1/rms_RV2: laisser vides si non fournis.
+- on = 1 partout; periastron_time_flag = 0 partout; epoch_reference = “JD” partout.
+- L’ordre des lignes dans le CSV n’a qu’une ligne par étoile (pas de séries temporelles ici).
+- Si une valeur est illisible dans les images, ouvrir le PDF; si introuvable, laisser le champ vide et signaler la donnée manquante dans un rapport final.
+
+Entrées fournies:
+
+- PDF (nouvelle référence) + images recadrées des lignes d’orbite.
+- Mapping catalogue→sn: "HD"|"identifier"|"sn".
+- OUTPUT_DIR Windows où écrire les CSV.
+- contributor (ex.: “KR”) et bibcode (ex.: “1987ApJS...64..487L”).
+- note_policy: booléen indiquant s’il faut insérer la phrase standard si le PDF mentionne l’usage d’autres données.
+
+Sortie attendue:
+
+- Un script Python autonome qui crée 1 CSV par étoile dans OUTPUT_DIR, respectant STRICTEMENT le schéma et les règles.
+- Un bref rapport listant les champs manquants par étoile.
+
+Code modèle à produire (adapter uniquement les valeurs extraites; conserver la structure):
+
+```python
+# make_orbits_to_dir_snfirst.py
+import os
+
+OUTPUT_DIR = r"C:\\Chemin\\De\\Sortie\\A\\REMPLACER"
+BIBCODE = "1987ApJS...64..487L"
+CONTRIBUTOR = "KR"
+NOTE_SENTENCE = "Paramètres orbitaux établis à partir des observations de {BIBCODE} et de données complémentaires issues d’autres références."
+
+HEADER = [
+    "sn","accessibility_legacy","apparent_systemic_velocity_1","apparent_systemic_velocity_2",
+    "apparent_systemic_velocity_error_1","apparent_systemic_velocity_error_2","bibcode","contributor",
+    "eccentricity","eccentricity_error","epoch_reference","grade","grade_legacy","K1","K1_error","K2","K2_error",
+    "note","num_RV1","num_RV2","on","periastron_argument","periastron_argument_error",
+    "periastron_time","periastron_time_error","periastron_time_flag","period","period_error","rms_RV1","rms_RV2",
+    "systemic_velocity","systemic_velocity_error"
+]
+
+def jd_from_hjd(hjd_str):
+    return f"{2400000.0 + float(hjd_str):.3f}" if hjd_str else ""
+
+def make_row(sn, period, period_err, hjd, hjd_err, e, e_err, omega, omega_err,
+             K1, K1_err, V, V_err, num1="", num2="", use_note=False,
+             asv1="", asv2="", asv1_err="", asv2_err="", K2="", K2_err=""):
+    note = NOTE_SENTENCE.format(BIBCODE=BIBCODE) if use_note else ""
+    return [
+        sn,"",asv1,asv2,asv1_err,asv2_err,BIBCODE,CONTRIBUTOR,
+        period and e or e, e_err, "JD","", "", K1, K1_err, K2, K2_err,
+        note, num1, num2, "1", omega, omega_err,
+        jd_from_hjd(hjd), hjd_err, "0", period, period_err, "", "",
+        V, V_err
+    ]
+
+def write_orbit(sn, row):
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    path = os.path.join(OUTPUT_DIR, f"orbit_{sn}.csv")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(",".join(HEADER) + "\\n")
+        f.write(",".join(row) + "\\n")
+    return path
+
+def main():
+    outputs = []
+    # Exemple à remplacer avec les valeurs extraites
+    # outputs.append(write_orbit("873", make_row("873","1.5700965","0.0000019","25027.887","0.051","0.15","0.03","25","12","121","5","-11.7","0.5",num1="7",use_note=False)))
+    print(f"Ecrit {len(outputs)} fichiers dans {OUTPUT_DIR}")
+
+if __name__ == "__main__":
+    main()
+```
+
+Rapport de complétude:
+
+- Après extraction, fournir une liste “Manques:” par étoile, p. ex. “HD 145519 (sn 890): grade absent; apparent_systemic_velocity_* non fournis; K2/K2_err non fournis.”
+
+Contraintes finales:
+
+- Ne pas changer l’ordre ni les intitulés du schéma; sn doit rester en première colonne.
+- epoch_reference doit toujours être “JD”; periastron_time_flag = 0; on = 1.
+- n’inclure aucune donnée a_sin_i, f(m) ou (O−C).
+- note est vide sauf mention explicite d’usage d’autres données (alors utiliser la phrase standard).
+
+Fin du prompt.
+—
+
+Si tu veux, ce prompt peut être spécialisé avec tes deux exemples déjà validés (SN 873 et 890) comme gabarits concrets, et le chemin de sortie peut être fixé à C:\Users\Kuba\Documents\kuba\ecole\unif\m1\stage 1\orbite\bibcode pour rester cohérent avec ton workflow actuel.
+

@@ -1,0 +1,138 @@
+<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
+
+# a totu sa tu peux ajouter le code em example
+
+Voici le prompt SB2 complété avec un exemple de code basé sur HR 2846 = 63 Gem (sn 454).
+
+Contexte:
+
+- Objectif: extraire les paramètres orbitaux de systèmes SB2 depuis un PDF (Table 4/“Orbital elements” ou équivalent) et/ou des images recadrées, puis générer 1 fichier CSV par système nommé orbit_<sn>.csv, en respectant EXACTEMENT le schéma et les règles ci‑dessous.
+- sn doit être la première colonne.
+- epoch_reference doit être “JD” dans tous les cas.
+- periastron_time = HJD + 2 400 000 (conversion systématique) en prenant T0 de la ligne principale (en général la composante a); periastron_time_error = l’incertitude sur ce HJD recopiée telle quelle (sans conversion).
+- periastron_time_flag = 0 par défaut.
+- on = 1 par défaut.
+- note:
+    - Décrire explicitement comment les deux lignes SB2 ont été combinées.
+    - Inclure une phrase en anglais indiquant que la vitesse systémique réelle peut être approximée par la moyenne simple des deux apparent systemic velocities, en donnant la valeur numérique (gamma_mean).
+    - Ajouter la phrase standard uniquement si le PDF indique que des données externes ont été utilisées:
+“Paramètres orbitaux établis à partir des observations de {BIBCODE} et de données complémentaires issues d’autres références.”
+- Exclure totalement a_sin_i, f(m) et (O−C) des sorties.
+
+Schéma CSV cible (ordre et noms de colonnes figés):
+
+sn,accessibility_legacy,apparent_systemic_velocity_1,apparent_systemic_velocity_2,apparent_systemic_velocity_error_1,apparent_systemic_velocity_error_2,bibcode,contributor,eccentricity,eccentricity_error,epoch_reference,grade,grade_legacy,K1,K1_error,K2,K2_error,note,num_RV1,num_RV2,on,periastron_argument,periastron_argument_error,periastron_time,periastron_time_error,periastron_time_flag,period,period_error,rms_RV1,rms_RV2,systemic_velocity,systemic_velocity_error
+
+Règles d’interprétation pour SB2:
+
+- period / period_error:
+    - Utiliser la période et son incertitude de la ligne principale (composante a).
+    - Si la seconde ligne indique “assumed” ou une période différente, ne pas la recopier; la mentionner seulement dans la note si nécessaire.
+- HJD (T0):
+    - Lire T0 de la ligne principale (composante a) avec son incertitude.
+    - periastron_time = HJD + 2 400 000 (3 décimales minimum); periastron_time_error = σ(HJD) tel quel.
+- eccentricity / eccentricity_error:
+    - Utiliser les valeurs de la ligne principale (composante a).
+    - Ignorer d’éventuelles valeurs e différentes sur la seconde ligne, sauf pour commentaire dans la note.
+- periastron_argument / periastron_argument_error:
+    - Utiliser ω et son incertitude de la ligne principale (composante a).
+- K1 / K1_error, K2 / K2_error:
+    - K1 = K de la composante a (ligne 1).
+    - K2 = K de la composante b (ligne 2).
+    - Si la seconde ligne est marquée “assumed”, recopier quand même ses valeurs K2 et K2_error; indiquer dans la note que K2 repose sur des éléments supposés/assumed.
+- apparent_systemic_velocity_1 / 2 et leurs erreurs:
+    - apparent_systemic_velocity_1 = γ1 (vitesse gamma de la composante a).
+    - apparent_systemic_velocity_2 = γ2 (vitesse gamma de la composante b).
+    - apparent_systemic_velocity_error_1 / 2 = incertitudes associées à γ1 et γ2.
+- systemic_velocity / systemic_velocity_error:
+    - Laisser systemic_velocity et systemic_velocity_error vides (réservés à une vitesse systémique commune explicitement publiée).
+    - Calculer la moyenne simple gamma_mean = (γ1 + γ2)/2, mais ne pas la mettre dans systemic_velocity; l’indiquer seulement dans la note.
+- num_RV1 / num_RV2:
+    - Fournir les nombres de mesures par composante si disponibles (sinon laisser vides).
+- contributor: utiliser la chaîne fournie (par défaut “KR”).
+- bibcode: utiliser le bibcode fourni (par défaut “1976ApJS...30..273A”).
+- grade / grade_legacy / rms_RV1 / rms_RV2: laisser vides si non fournis.
+- on = 1 partout; periastron_time_flag = 0 partout; epoch_reference = “JD” partout.
+- Une seule ligne dans le CSV par système SB2, combinant les deux lignes d’orbite.
+
+Combinaison SB2 (résumé pratique):
+
+- Pour chaque SB2:
+    - Lire la première ligne (composante a) → fournit period, period_error, T0, σT0, e, σe, ω, σω, K1, σK1, γ1, σγ1.
+    - Lire la seconde ligne (composante b) → fournit K2, σK2, γ2, σγ2 et éventuellement e2, ω2, “assumed”.
+    - Construire une seule ligne CSV avec:
+        - K1, K1_error depuis ligne 1; K2, K2_error depuis ligne 2.
+        - apparent_systemic_velocity_
+exemple de code 
+# make_orbits_to_dir_snfirst.py
+import os
+
+OUTPUT_DIR = r"C:\Users\Kuba\Documents\kuba\ecole\unif\m1\stage 1\orbite\1976ApJS...30..273A"
+BIBCODE = "1976ApJS...30..273A"
+CONTRIBUTOR = "KR"
+
+HEADER = [
+    "sn","accessibility_legacy","apparent_systemic_velocity_1","apparent_systemic_velocity_2",
+    "apparent_systemic_velocity_error_1","apparent_systemic_velocity_error_2","bibcode","contributor",
+    "eccentricity","eccentricity_error","epoch_reference","grade","grade_legacy","K1","K1_error","K2","K2_error",
+    "note","num_RV1","num_RV2","on","periastron_argument","periastron_argument_error",
+    "periastron_time","periastron_time_error","periastron_time_flag","period","period_error","rms_RV1","rms_RV2",
+    "systemic_velocity","systemic_velocity_error"
+]
+
+def jd_from_hjd(hjd_str):
+    return f"{2400000.0 + float(hjd_str):.3f}" if hjd_str else ""
+
+def write_orbit(sn, row):
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    path = os.path.join(OUTPUT_DIR, f"orbit_{sn}.csv")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(",".join(HEADER) + "\n")
+        f.write(",".join(row) + "\n")
+    return path
+
+def main():
+    outputs = []
+
+    # HR 2846 = 63 Gem — sn 454
+    period = "1.9326797"
+    period_err = "0.0000006"
+    hjd1 = "2423429.68"      # T0 de la ligne 1
+    hjd1_err = "0.04"
+    e1, e1_err = "0.03", "0.01"
+    omega1, omega1_err = "42", "8"
+    K1, K1_err = "96.2", "1.0"
+    K2, K2_err = "115.9", "1.7"
+    gamma1, gamma1_err = "22.5", "0.9"
+    gamma2, gamma2_err = "23.6", "1.6"
+
+    gamma_mean = f"{(22.5 + 23.6)/2:.2f}"  # 23.05
+
+    note = (f"The real systemic velocity can be approximated by the simple average of the two apparent systemic velocities so the systemic velocity is {gamma_mean} .")
+
+    row_454 = [
+        "454","",
+        gamma1, gamma2,
+        gamma1_err, gamma2_err,
+        BIBCODE, CONTRIBUTOR,
+        e1, e1_err,
+        "JD","", "",
+        K1, K1_err,
+        K2, K2_err,
+        note,
+        "","",          # num_RV1, num_RV2
+        "1",
+        omega1, omega1_err,
+        hjd1, hjd1_err,
+        "0",
+        period, period_err,
+        "","",          # rms_RV1, rms_RV2
+        "",""           # systemic_velocity, systemic_velocity_error vides
+    ]
+
+    outputs.append(write_orbit("454", row_454))
+    print(f"Ecrit {len(outputs)} fichiers dans {OUTPUT_DIR}")
+
+if __name__ == "__main__":
+    main()
+fin prompt

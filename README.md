@@ -12,6 +12,7 @@ Ensemble de prompts structurés développés lors de mon stage de Master 1 (ULB,
 
 ## 📂 **Structure**
 SBX-Stage-Prompts/
+
 ├── prompt-orbite.md              # Paramètres orbitaux SB1
 
 ├── prompt-velocities.md          # vitesse radial SB1

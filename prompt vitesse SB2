@@ -1,0 +1,98 @@
+
+Contexte:
+
+- Objectif: extraire des séries de vitesses radiales pour des systèmes SB1 et SB2 depuis un PDF (tables “TABLE 2” ou équivalent) et/ou des images recadrées, puis générer 1 fichier CSV par système nommé velocity_<sn>.csv, en respectant EXACTEMENT le schéma et les règles ci‑dessous.
+- Pour les SB2, chaque epoch peut avoir:
+    - une seule vitesse (composante a uniquement), ou
+    - deux vitesses l’une sous l’autre pour le même epoch (première = composante a, deuxième = composante b).
+- Les exemples fournis (HR 5304, HR 2846, HR 6596, HR 8123) illustrent la manière de mapper les lignes en composantes a/b et de convertir les epochs.
+
+Schéma CSV cible (ordre et noms de colonnes figés):
+
+sn,comment_legacy,component,epoch,offset_legacy,on,radial_velocity,radial_velocity_error,velocity_source,weight
+
+Règles d’interprétation:
+
+- epoch:
+    - Lire le HJD ou “xJD” tel qu’imprimé dans la première colonne.
+    - Si une ligne ne comporte pas de HJD (colonne vide) mais seulement une vitesse + erreur directement sous un epoch, alors:
+        - Lui attribuer le même epoch que la ligne précédente.
+        - Pour les SB2, ce cas correspond typiquement à la composante b.
+    - epoch = HJD + 2 400 000, avec au moins trois décimales (utiliser jd_abs comme dans l’exemple).
+- component:
+    - SB1: toutes les lignes ont component = "a".
+    - SB2:
+        - Si plusieurs lignes consécutives portent le même epoch:
+            - Première mesure pour cet epoch → component = "a".
+            - Deuxième mesure pour le même epoch → component = "b".
+        - Si une seule mesure pour cet epoch → component = "a".
+- radial_velocity / radial_velocity_error:
+    - Recopier la vitesse et l’erreur telles qu’imprimées (km s⁻¹).
+    - Conserver les signes ± et la précision (nombre de décimales) visibles dans la table.
+- offset_legacy:
+    - Toujours "JD" (les epoch ont déjà été convertis en JD absolu via jd_abs).
+- on:
+    - Toujours "1".
+- velocity_source:
+    - Toujours le bibcode fourni (par défaut "1976ApJS...30..273A").
+- weight:
+    - 1 si aucun poids explicite n’est fourni dans le PDF.
+- comment_legacy:
+    - Laisser vide par défaut; utiliser uniquement si une colonne de commentaires spécifiques apparaît dans la table (sinon ignorer).
+- L’ordre des lignes dans chaque CSV doit suivre strictement l’ordre visuel des tables/recadrages.
+- Une entrée files["velocity_sn.csv"] par système, contenant toutes les lignes CSV pour ce système.
+
+Entrées fournies:
+
+- PDF source + images recadrées des blocs de la table de vitesses.
+- Mapping catalogue→sn: "HR"|"identifier"|"sn".
+- OUTPUT_DIR Windows où écrire les CSV.
+- BIBCODE pour velocity_source (ex.: "1976ApJS...30..273A").
+
+Sortie attendue:
+
+- Un script Python autonome (make_velocities_to_dir.py) sans dépendances externes, qui:
+    - Définit OUTPUT_DIR et BIBCODE.
+    - Implémente jd_abs(xjd) = 2 400 000 + float(xjd) avec formatage à ≥ 3 décimales.
+    - Construit un dictionnaire files où chaque clé est "velocity_<sn>.csv" et la valeur est une chaîne multilignes déduite avec dedent, contenant l’en‑tête et toutes les lignes de vitesses pour ce sn.
+    - Écrit tous les fichiers dans OUTPUT_DIR en respectant exactement l’ordre de colonnes ci‑dessus.
+- Un court rapport éventuel listant les cas ambigus (epochs illisibles ou vitesses manquantes).
+
+Exemple de code (tel qu’à utiliser):
+
+```python
+# make_velocities_to_dir.py
+import os
+from textwrap import dedent
+
+OUTPUT_DIR = r"C:\Users\Kuba\Documents\kuba\ecole\unif\m1\stage 1\velocitis\1976ApJS...30..273A"
+BIBCODE = "1976ApJS...30..273A"
+
+def jd_abs(xjd):
+    return f"{2400000.0 + float(xjd):.3f}"
+
+files = {
+    # HR 5304 = 12d Boo — sn 804 — SB2, a/b par epoch
+    "velocity_804.csv": dedent(f"""
+sn,comment_legacy,component,epoch,offset_legacy,on,radial_velocity,radial_velocity_error,velocity_source,weight
+804,,a,{jd_abs('39247.915')},JD,1,-33.8,0.5,{BIBCODE},1
+804,,b,{jd_abs('39247.915')},JD,1,46.9,2.6,{BIBCODE},1
+804,,a,{jd_abs('39277.772')},JD,1,-53.9,0.5,{BIBCODE},1
+804,,b,{jd_abs('39277.772')},JD,1,62.3,2.2,{BIBCODE},1
+804,,a,{jd_abs('39317.707')},JD,1,-43.3,0.9,{BIBCODE},1
+804,,b,{jd_abs('39317.707')},JD,1,56.6,0.8,{BIBCODE},1
+804,,a,{jd_abs('39909.003')},JD,1,11.9,0.7,{BIBCODE},1
+804,,a,{jd_abs('39910.025')},JD,1,-13.5,1.1,{BIBCODE},1
+804,,b,{jd_abs('39910.025')},JD,1,32.8,1.6,{BIBCODE},1
+804,,a,{jd_abs('39929.914')},JD,1,-32.0,0.9,{BIBCODE},1
+804,,b,{jd_abs('39929.914')},JD,1,52.0,2.7,{BIBCODE},1
+804,,a,{jd_abs('39966.786')},JD,1,7.8,0.3,{BIBCODE},1
+804,,a,{jd_abs('39984.755')},JD,1,46.1,0.8,{BIBCODE},1
+804,,b,{jd_abs('39984.755')},JD,1,-32.0,2.0,{BIBCODE},1
+804,,a,{jd_abs('39987.746')},JD,1,-39.5,0.6,{BIBCODE},1
+804,,b,{jd_abs('39987.746')},JD,1,56.1,1.4,{BIBCODE},1
+804,,a,{jd_abs('40281.953')},JD,1,64.4,0.4,{BIBCODE},1
+804,,b,{jd_abs('40281.953')},JD,1,-43.7,1.0,{BIBCODE},1
+804,,a,{jd_abs('40373.702')},JD,1,-48.1,0.8,{BIBCODE},1
+804,,b,{jd_abs('40373.702')},JD,1,73.6,1.0,{BIBCODE},```
+

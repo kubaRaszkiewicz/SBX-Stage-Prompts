@@ -1,9 +1,3 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
-
-# maintent mes toi dasn ma situation et fais moi prompte qui pourra etre donner a un autre chat gpt 5 avec des image dautre donner et un autre pdf pour quille me donner se code comme tu vien de moenvoyer et qui si il lui manqhue des infi me le dise sachant quil dois garder exactent la meme syntqxe que toi pour les fichier finap
-
-Voici un prompt prêt à copier-coller pour un autre assistant afin d’obtenir automatiquement le même type de code et les mêmes fichiers finaux, à partir d’un autre PDF et d’autres images.
-
 PROMPT À DONNER TEL QUEL
 —
 Contexte:
@@ -111,9 +105,4 @@ Contraintes finales:
 - velocity_source = bibcode constant (“1987ApJS...64..487L” sauf instruction contraire).
 - Indiquer explicitement tout élément non trouvé.
 Fin du prompt.
-—
-
-Ce prompt guidera un autre assistant pour produire un script identique dans la forme et la syntaxe, adapté à un PDF/images différents, et pour signaler clairement toute information manquante avant ingestion.[^1]
-
-<div align="center">⁂</div>
 

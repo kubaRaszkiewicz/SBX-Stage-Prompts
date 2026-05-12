@@ -1,9 +1,3 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
-
-# a totu sa tu peux ajouter le code em example
-
-Voici le prompt SB2 complété avec un exemple de code basé sur HR 2846 = 63 Gem (sn 454).
-
 Contexte:
 
 - Objectif: extraire les paramètres orbitaux de systèmes SB2 depuis un PDF (Table 4/“Orbital elements” ou équivalent) et/ou des images recadrées, puis générer 1 fichier CSV par système nommé orbit_<sn>.csv, en respectant EXACTEMENT le schéma et les règles ci‑dessous.

@@ -1,4 +1,5 @@
-
+PROMPT À DONNER TEL QUEL
+—
 Contexte:
 
 - Objectif: extraire des séries de vitesses radiales pour des systèmes SB1 et SB2 depuis un PDF (tables “TABLE 2” ou équivalent) et/ou des images recadrées, puis générer 1 fichier CSV par système nommé velocity_<sn>.csv, en respectant EXACTEMENT le schéma et les règles ci‑dessous.

@@ -1,3 +1,5 @@
+PROMPT À DONNER TEL QUEL
+—
 Contexte:
 
 - Objectif: extraire les paramètres orbitaux de systèmes SB2 depuis un PDF (Table 4/“Orbital elements” ou équivalent) et/ou des images recadrées, puis générer 1 fichier CSV par système nommé orbit_<sn>.csv, en respectant EXACTEMENT le schéma et les règles ci‑dessous.
